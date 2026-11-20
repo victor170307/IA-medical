@@ -1,0 +1,22 @@
+# Fichiers Python temporaires
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Environnements virtuels
+.venv/
+venv/
+
+# Données brutes BDPM téléchargées et base SQLite locale
+data/raw/
+data/*.sqlite3
+data/*.sqlite3-journal
+data/*.sqlite3-wal
+data/*.sqlite3-shm
+
+# Archives locales
+*.zip
+
+# Variables d'environnement et secrets éventuels
+.env

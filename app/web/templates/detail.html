@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}{{ med.denomination }} (CIS {{ med.code_cis }}) — Fiche BDPM{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="/">← Retour à la recherche</a>
+</div>
+
+<section class="detail-header-card">
+    <div class="detail-title-row">
+        <h1>{{ med.denomination }}</h1>
+        {% if med.etat_commercialisation == "Commercialisée" %}
+            <span class="badge badge-ok">Commercialisée</span>
+        {% else %}
+            <span class="badge badge-muted">{{ med.etat_commercialisation or "Statut non précisé" }}</span>
+        {% endif %}
+    </div>
+
+    <p class="provenance-tag">
+        Identifiant officiel ANSM / BDPM : <strong>Code CIS <code>{{ med.code_cis }}</code></strong>
+        — Source directe : fichier <code>{{ med.provenance.primary_file }}</code>
+        (mise à jour BDPM : {{ med.provenance.official_bdpm_date }})
+    </p>
+
+    {% if med.surveillance_renforcee == "Oui" %}
+    <div class="alert-box alert-warning">
+        <strong>▼ Médicament sous surveillance renforcée (triangle noir) :</strong>
+        Ce médicament fait l'objet d'une surveillance supplémentaire par les autorités de santé.
+    </div>
+    {% endif %}
+
+    {% if med.infos_importantes %}
+    <div class="alert-box alert-danger">
+        <h2>Informations importantes de sécurité (ANSM — <code>CIS_InfoImportantes.txt</code>)</h2>
+        <ul>
+            {% for info in med.infos_importantes %}
+            <li>
+                <strong>Du {{ info.date_debut or "?" }}{% if info.date_fin %} au {{ info.date_fin }}{% endif %} :</strong>
+                {{ info.texte_information }}
+                {% if info.lien_ansm %}
+                    — <a href="{{ info.lien_ansm }}" target="_blank" rel="noopener noreferrer">Consulter l'alerte officielle ANSM ↗</a>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="official-links-box">
+        <h2>Documents cliniques officiels externes (Notice patient &amp; RCP)</h2>
+        <p>{{ med.external_official_links.note }}</p>
+        <p>
+            <a href="{{ med.external_official_links.fiche_bdpm_url }}" target="_blank" rel="noopener noreferrer" class="btn-primary">
+                Consulter la fiche officielle, la Notice et le RCP sur medicaments.gouv.fr ↗
+            </a>
+        </p>
+    </div>
+</section>
+
+<div class="detail-grid">
+    <section class="detail-card">
+        <h2>1. Caractéristiques générales (<code>CIS_bdpm.txt</code>)</h2>
+        <dl class="info-list">
+            <dt>Code CIS</dt>
+            <dd><code>{{ med.code_cis }}</code></dd>
+
+            <dt>Forme pharmaceutique</dt>
+            <dd>{{ med.forme_pharmaceutique or "Non renseignée dans la source" }}</dd>
+
+            <dt>Voie(s) d'administration</dt>
+            <dd>
+                {% if med.voies_administration %}
+                    {{ med.voies_administration | join(", ") }}
+                {% else %}
+                    Non renseignées dans la source
+                {% endif %}
+            </dd>
+
+            <dt>Statut de l'AMM</dt>
+            <dd>{{ med.statut_amm or "Non renseigné" }} ({{ med.type_procedure_amm or "Procédure non renseignée" }})</dd>
+
+            <dt>Date d'AMM</dt>
+            <dd>{{ med.date_amm or "Non renseignée" }}</dd>
+
+            <dt>Titulaire(s)</dt>
+            <dd>{{ med.titulaires or "Non renseigné" }}</dd>
+
+            <dt>Surveillance renforcée</dt>
+            <dd>{{ med.surveillance_renforcee or "Non renseigné" }}</dd>
+
+            {% if med.statut_bdm %}
+            <dt>Alerte / Statut BDM</dt>
+            <dd><span class="badge badge-warn">{{ med.statut_bdm }}</span></dd>
+            {% endif %}
+        </dl>
+    </section>
+
+    <section class="detail-card">
+        <h2>2. Composition qualitative et quantitative (<code>CIS_COMPO_bdpm.txt</code>)</h2>
+        {% if med.compositions %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Substance / Composant</th>
+                    <th>Dosage</th>
+                    <th>Référence</th>
+                    <th>Nature</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in med.compositions %}
+                <tr>
+                    <td><strong>{{ c.denomination_substance }}</strong> <small>(code {{ c.code_substance or "?" }})</small></td>
+                    <td>{{ c.dosage or "Non renseigné" }}</td>
+                    <td>{{ c.reference_dosage or "—" }} ({{ c.designation_element or "—" }})</td>
+                    <td>{{ c.nature_libelle }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="missing-data">Aucune donnée de composition trouvée dans <code>CIS_COMPO_bdpm.txt</code> pour cette spécialité.</p>
+        {% endif %}
+    </section>
+</div>
+
+<div class="detail-grid">
+    <section class="detail-card">
+        <h2>3. Conditions de prescription et délivrance (<code>CIS_CPD_bdpm.txt</code>)</h2>
+        {% if med.conditions_prescription %}
+        <ul>
+            {% for cpd in med.conditions_prescription %}
+            <li>{{ cpd.condition }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="missing-data">
+            Aucune condition particulière de restriction enregistrée dans <code>CIS_CPD_bdpm.txt</code> pour ce médicament.
+        </p>
+        {% endif %}
+    </section>
+
+    <section class="detail-card">
+        <h2>4. Appartenance à un groupe générique (<code>CIS_GENER_bdpm.txt</code>)</h2>
+        {% if med.groupes_generiques %}
+        <ul>
+            {% for g in med.groupes_generiques %}
+            <li>
+                <strong>Groupe {{ g.identifiant_groupe }} :</strong> {{ g.libelle_groupe }}
+                <br><small>Rôle de cette spécialité : <strong>{{ g.type_generique_libelle }}</strong></small>
+                {% if g.autres_specialites %}
+                <div class="group-peers">
+                    <small><strong>Autres spécialités du même groupe générique :</strong></small>
+                    <ul class="peers-list">
+                        {% for peer in g.autres_specialites %}
+                        <li>
+                            <a href="/medicaments/{{ peer.code_cis }}">{{ peer.denomination }}</a>
+                            <small>({{ peer.type_generique_libelle }} — {{ peer.etat_commercialisation or "Statut non précisé" }})</small>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="missing-data">
+            Cette spécialité n'est rattachée à aucun groupe générique dans <code>CIS_GENER_bdpm.txt</code>.
+        </p>
+        {% endif %}
+    </section>
+</div>
+
+<section class="detail-card">
+    <h2>5. Présentations / Conditionnements (<code>CIS_CIP_bdpm.txt</code>)</h2>
+    {% if med.presentations %}
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Code CIP13 (CIP7)</th>
+                    <th>Libellé du conditionnement</th>
+                    <th>Statut commercialisation</th>
+                    <th>Taux remb.</th>
+                    <th>Prix TTC (€)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in med.presentations %}
+                <tr>
+                    <td><code>{{ p.code_cip13 or "—" }}</code> <small>({{ p.code_cip7 or "—" }})</small></td>
+                    <td>{{ p.libelle_presentation }}</td>
+                    <td>{{ p.etat_commercialisation or "Non renseigné" }}</td>
+                    <td>{{ p.taux_remboursement or "Non renseigné" }}</td>
+                    <td>{{ p.prix_ttc or "Prix libre / Non renseigné" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="missing-data">Aucune présentation trouvée dans <code>CIS_CIP_bdpm.txt</code> pour ce code CIS.</p>
+    {% endif %}
+</section>
+
+<section class="detail-card limitations-card">
+    <h2>6. Limites des données affichées (Transparence documentaire)</h2>
+    <ul>
+        {% for lim in med.data_limitations %}
+        <li>{{ lim }}</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}

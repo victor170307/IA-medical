@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Référentiel Médicaments — Données Publiques BDPM{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <div>
+                <a href="/" class="brand-title">Référentiel Médicaments (Palier 1 — BDPM)</a>
+                <p class="brand-subtitle">
+                    Recherche documentaire fondée exclusivement sur les fichiers ouverts de la Base de données publique des médicaments
+                </p>
+            </div>
+            <div class="status-pill">
+                {% if metadata.ready == "true" %}
+                    <span class="badge badge-ok">Base active : {{ metadata.specialites_count }} spécialités</span>
+                {% else %}
+                    <span class="badge badge-warn">Base locale vide</span>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <div class="disclaimer-banner">
+        <div class="container">
+            <strong>Information documentaire uniquement :</strong>
+            Cette application affiche les données publiques de la BDPM sans les modifier ni formuler de recommandation médicale.
+            Elle ne remplace jamais l'avis d'un médecin ou d'un pharmacien.
+        </div>
+    </div>
+
+    <main class="container main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-inner">
+            <p>
+                <strong>Source des données :</strong>
+                <a href="{{ metadata.source_url }}" target="_blank" rel="noopener noreferrer">
+                    {{ metadata.source_name }} ({{ metadata.source_url }})
+                </a>
+            </p>
+            <p>
+                <strong>Date de mise à jour BDPM relevée :</strong> {{ metadata.official_bdpm_date }}
+                &nbsp;|&nbsp;
+                <strong>Date d'import local (UTC) :</strong> {{ metadata.imported_at_utc }}
+            </p>
+            <p class="legal-notice">
+                Conformément à l'article L. 161-40-1 du code de la sécurité sociale et à la loi CADA, la mention de cette source
+                ne confère aucun caractère officiel à cette application et n'implique aucune reconnaissance ou caution par l'ANSM,
+                la HAS ou l'UNCAM.
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
