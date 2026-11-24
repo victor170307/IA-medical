@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Substances actives (SA) — Données publiques BDPM{% endblock %}
+
+{% block content %}
+<section class="search-hero" aria-labelledby="substances-heading">
+    <h1 id="substances-heading">Annuaire des substances actives officielles (nature SA)</h1>
+    <p class="helper-text">
+        Cet annuaire regroupe exclusivement les substances de <strong>nature SA (Substance Active)</strong>
+        par leur <strong>code officiel</strong> (<code>CIS_COMPO_bdpm.txt</code>). Lorsque plusieurs orthographes officielles
+        existent pour un même code, elles sont rassemblées sur une seule fiche.
+    </p>
+
+    <form action="/substances" method="get" class="search-form" role="search">
+        <div class="search-input-row">
+            <div class="search-input-wrapper">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input
+                    type="search"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Ex : paracétamol, amoxicilline, acide acétylsalicylique, ou code substance..."
+                    aria-label="Filtrer les substances actives par nom ou code officiel"
+                    class="search-input"
+                >
+            </div>
+            <button type="submit" class="btn-primary">Filtrer</button>
+            {% if query.strip() %}
+            <a href="/substances" class="btn-secondary">Tout afficher</a>
+            {% endif %}
+        </div>
+    </form>
+</section>
+
+{% if substances.status == "page_out_of_range" %}
+<section class="alert-box alert-warning" role="status">
+    <h2>Page demandée inexistante</h2>
+    <p>{{ substances.warning }}</p>
+    <div class="pagination-actions" style="margin-top: 0.75rem;">
+        <a href="/substances{% if pagination_base_qs %}?{{ pagination_base_qs }}&page=1{% endif %}" class="btn-secondary">Revenir à la page 1</a>
+        {% if substances.pagination.total_pages > 1 %}
+        <a href="/substances?{% if pagination_base_qs %}{{ pagination_base_qs }}&{% endif %}page={{ substances.pagination.total_pages }}" class="btn-secondary">
+            Aller à la dernière page ({{ substances.pagination.total_pages }})
+        </a>
+        {% endif %}
+    </div>
+</section>
+{% elif substances.status == "no_results" %}
+<section class="alert-box alert-error" role="status">
+    <h2>Aucune substance active trouvée</h2>
+    <p>Aucune substance active officielle (nature SA) ne correspond à « {{ query }} » dans les données BDPM importées.</p>
+</section>
+{% endif %}
+
+{% if substances.results %}
+<section class="results-section" aria-label="Liste des substances actives">
+    <div class="results-header">
+        <h2>
+            <span class="mono">{{ substances.total_count }}</span> substance{% if substances.total_count > 1 %}s{% endif %} active{% if substances.total_count > 1 %}s{% endif %} (SA)
+            {% if query.strip() %}pour « {{ query }} »{% endif %}
+            {% if substances.pagination.total_pages > 1 %}
+                <span class="results-page-meta">(page <span class="mono">{{ substances.pagination.page }}</span> / <span class="mono">{{ substances.pagination.total_pages }}</span>)</span>
+            {% endif %}
+        </h2>
+        <p class="provenance-tag">Regroupement strict par <code>code_substance</code> officiel (<code>CIS_COMPO_bdpm.txt</code>)</p>
+    </div>
+
+    <div class="substance-grid">
+        {% for sub in substances.results %}
+        <article class="substance-card">
+            <div class="substance-card-top">
+                <h3 class="substance-card-title">
+                    <a href="/substances/{{ sub.code_substance }}">{{ sub.denomination_principale }}</a>
+                </h3>
+                <code class="mono">Code {{ sub.code_substance }}</code>
+            </div>
+
+            {% if sub.autres_denominations %}
+            <p class="substance-aliases">
+                <strong>Autres appellations officielles regroupées :</strong>
+                {{ sub.autres_denominations | join(" · ") }}
+            </p>
+            {% endif %}
+
+            <div class="substance-card-footer">
+                <span class="badge badge-neutral">
+                    <span class="mono">{{ sub.specialites_count }}</span> spécialité{% if sub.specialites_count > 1 %}s{% endif %}
+                </span>
+                <span class="badge badge-active">
+                    <span class="mono">{{ sub.commercialisees_count }}</span> commercialisée{% if sub.commercialisees_count > 1 %}s{% endif %}
+                </span>
+                <a href="/substances/{{ sub.code_substance }}" class="link-external">Voir les spécialités →</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+
+    {% if substances.pagination.total_pages > 1 %}
+    <nav class="pagination-bar" aria-label="Pagination des substances actives">
+        <div class="pagination-summary">
+            Page <strong class="mono">{{ substances.pagination.page }}</strong> sur <strong class="mono">{{ substances.pagination.total_pages }}</strong>
+            — <span class="mono">{{ substances.total_count }}</span> substance{% if substances.total_count > 1 %}s{% endif %} active{% if substances.total_count > 1 %}s{% endif %}
+        </div>
+        <div class="pagination-actions">
+            {% if substances.pagination.has_prev %}
+            <a href="/substances?{% if pagination_base_qs %}{{ pagination_base_qs }}&{% endif %}page={{ substances.pagination.prev_page }}" class="btn-secondary">← Page précédente</a>
+            {% else %}
+            <span class="btn-secondary is-disabled" aria-disabled="true">← Page précédente</span>
+            {% endif %}
+
+            {% if substances.pagination.has_next %}
+            <a href="/substances?{% if pagination_base_qs %}{{ pagination_base_qs }}&{% endif %}page={{ substances.pagination.next_page }}" class="btn-secondary">Page suivante →</a>
+            {% else %}
+            <span class="btn-secondary is-disabled" aria-disabled="true">Page suivante →</span>
+            {% endif %}
+        </div>
+    </nav>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}

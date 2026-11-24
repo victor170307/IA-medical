@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}Groupe générique {{ group.identifiant_groupe }} — {{ group.libelle_groupe }} — BDPM{% endblock %}
+
+{% block content %}
+{% set return_query_suffix = "?return_to=" ~ (current_return_path | urlencode) %}
+
+<div class="detail-topbar">
+    <a href="/" id="smart-back-link" class="back-link">
+        <span aria-hidden="true">←</span>
+        <span class="back-link-text">Retour à la recherche</span>
+    </a>
+</div>
+
+<section class="detail-card" style="margin-bottom: 1.25rem;">
+    <div class="detail-hero-badges">
+        <span class="badge badge-generic">Groupe générique officiel</span>
+        <span class="badge badge-neutral">Identifiant : <span class="mono">{{ group.identifiant_groupe }}</span></span>
+        <span class="badge badge-princeps"><span class="mono">{{ group.princeps_count }}</span> princeps</span>
+        <span class="badge badge-generic"><span class="mono">{{ group.generics_count }}</span> générique(s)</span>
+    </div>
+
+    <h1 class="detail-hero-title">{{ group.libelle_groupe }}</h1>
+    <p class="provenance-tag">
+        Source directe : <code>{{ group.source_file }}</code> —
+        Les spécialités de référence (<strong>princeps</strong>, code rôle <code class="mono">0</code>) et les
+        <strong>médicaments génériques</strong> (codes rôles <code class="mono">1</code>, <code class="mono">2</code>, <code class="mono">4</code>)
+        sont distingués conformément au répertoire officiel de la BDPM.
+    </p>
+</section>
+
+<!-- 1. Spécialités de référence (Princeps) -->
+<section class="detail-card" style="margin-bottom: 1.25rem;" aria-labelledby="heading-princeps">
+    <div class="section-header">
+        <h2 id="heading-princeps">1. Spécialité(s) de référence (Princeps) — <span class="mono">{{ group.princeps_count }}</span></h2>
+        <span class="badge badge-princeps">Code rôle BDPM : 0</span>
+    </div>
+
+    {% if group.princeps %}
+    <div class="results-list">
+        {% for item in group.princeps %}
+        <article class="med-card">
+            <div class="med-card-top">
+                <div class="med-card-heading">
+                    <h3 class="med-title">
+                        <a href="/medicaments/{{ item.code_cis }}{{ return_query_suffix }}">{{ item.denomination }}</a>
+                    </h3>
+                    <p class="med-meta">
+                        <span class="meta-item">
+                            <strong>CIS :</strong> <code class="mono">{{ item.code_cis }}</code>
+                            <button type="button" class="copy-btn" data-copy-value="{{ item.code_cis }}" data-copy-label="Code CIS">Copier</button>
+                        </span>
+                        {% if item.forme_pharmaceutique %}
+                        <span class="meta-item"><strong>Forme :</strong> {{ item.forme_pharmaceutique }}</span>
+                        {% endif %}
+                        {% if item.titulaires %}
+                        <span class="meta-item"><strong>Titulaire :</strong> {{ item.titulaires }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="med-badges">
+                    <span class="badge badge-princeps">{{ item.group_role_label }}</span>
+                    {% if item.etat_commercialisation == "Commercialisée" %}
+                        <span class="badge badge-active">Commercialisée</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ item.etat_commercialisation or "Statut non précisé" }}</span>
+                    {% endif %}
+                    {% if item.important_info_count > 0 %}
+                        <span class="badge badge-ansm">{{ item.important_info_count }} info(s) ANSM disponible(s)</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="med-card-actions">
+                <a href="/medicaments/{{ item.code_cis }}{{ return_query_suffix }}" class="btn-secondary">Consulter la fiche complète →</a>
+                <a href="{{ item.official_fiche_url }}" target="_blank" rel="noopener noreferrer" class="link-external">Notice &amp; RCP officiels (BDPM) ↗</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="missing-data" style="margin-top: 0;">
+        Aucune spécialité de référence (princeps) enregistrée pour ce groupe dans les données locales.
+    </p>
+    {% endif %}
+</section>
+
+<!-- 2. Médicaments génériques -->
+<section class="detail-card" aria-labelledby="heading-generics">
+    <div class="section-header">
+        <h2 id="heading-generics">2. Médicaments génériques du groupe — <span class="mono">{{ group.generics_count }}</span></h2>
+        <span class="badge badge-generic">Codes rôles BDPM : 1, 2, 4</span>
+    </div>
+
+    {% if group.generics %}
+    <div class="results-list">
+        {% for item in group.generics %}
+        <article class="med-card">
+            <div class="med-card-top">
+                <div class="med-card-heading">
+                    <h3 class="med-title">
+                        <a href="/medicaments/{{ item.code_cis }}{{ return_query_suffix }}">{{ item.denomination }}</a>
+                    </h3>
+                    <p class="med-meta">
+                        <span class="meta-item">
+                            <strong>CIS :</strong> <code class="mono">{{ item.code_cis }}</code>
+                            <button type="button" class="copy-btn" data-copy-value="{{ item.code_cis }}" data-copy-label="Code CIS">Copier</button>
+                        </span>
+                        {% if item.forme_pharmaceutique %}
+                        <span class="meta-item"><strong>Forme :</strong> {{ item.forme_pharmaceutique }}</span>
+                        {% endif %}
+                        {% if item.titulaires %}
+                        <span class="meta-item"><strong>Titulaire :</strong> {{ item.titulaires }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="med-badges">
+                    <span class="badge badge-generic">{{ item.group_role_label }}</span>
+                    {% if item.etat_commercialisation == "Commercialisée" %}
+                        <span class="badge badge-active">Commercialisée</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ item.etat_commercialisation or "Statut non précisé" }}</span>
+                    {% endif %}
+                    {% if item.important_info_count > 0 %}
+                        <span class="badge badge-ansm">{{ item.important_info_count }} info(s) ANSM disponible(s)</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="med-card-actions">
+                <a href="/medicaments/{{ item.code_cis }}{{ return_query_suffix }}" class="btn-secondary">Consulter la fiche complète →</a>
+                <a href="{{ item.official_fiche_url }}" target="_blank" rel="noopener noreferrer" class="link-external">Notice &amp; RCP officiels (BDPM) ↗</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="missing-data" style="margin-top: 0;">
+        Aucun médicament générique enregistré dans ce groupe pour les données locales importées.
+    </p>
+    {% endif %}
+</section>
+{% endblock %}

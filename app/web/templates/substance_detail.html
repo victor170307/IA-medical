@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}{{ substance.denomination_principale }} (Code SA {{ substance.code_substance }}) — BDPM{% endblock %}
+
+{% block content %}
+{% set return_query_suffix = "?return_to=" ~ (current_return_path | urlencode) %}
+
+<div class="detail-topbar">
+    <a href="/substances" class="back-link">
+        <span aria-hidden="true">←</span>
+        <span>Retour à l'annuaire des substances actives</span>
+    </a>
+    <div class="detail-utility-actions">
+        <button
+            type="button"
+            class="btn-secondary"
+            data-copy-value="{{ substance.code_substance }}"
+            data-copy-label="Code substance SA"
+        >Copier code {{ substance.code_substance }}</button>
+    </div>
+</div>
+
+<section class="detail-card" style="margin-bottom: 1.25rem;">
+    <div class="detail-hero-badges">
+        <span class="badge badge-ansm">Substance active (SA)</span>
+        <span class="badge badge-neutral">Code officiel : <span class="mono">{{ substance.code_substance }}</span></span>
+        <span class="badge badge-neutral"><span class="mono">{{ substance.total_all_specialites }}</span> spécialité(s) en base</span>
+    </div>
+
+    <h1 class="detail-hero-title">{{ substance.denomination_principale }}</h1>
+
+    {% if substance.autres_denominations %}
+    <div class="computed-box" style="margin-top: 0.75rem;">
+        <div class="computed-label">Appellations officielles regroupées sous le code {{ substance.code_substance }}</div>
+        <p class="computed-text">
+            Dans <code>CIS_COMPO_bdpm.txt</code>, ce code officiel apparaît également sous les dénominations suivantes :
+            <strong>{{ substance.autres_denominations | join(" · ") }}</strong>.
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="alert-box alert-warning" style="margin-top: 1rem; margin-bottom: 1rem;">
+        <strong>Rappel documentaire :</strong> {{ substance.safety_note }}
+    </div>
+
+    <form action="/substances/{{ substance.code_substance }}" method="get" class="catalogue-filter-row">
+        <label class="checkbox-label">
+            <input
+                type="checkbox"
+                name="commercialise_only"
+                value="true"
+                {% if substance.commercialise_only %}checked{% endif %}
+                onchange="this.form.submit()"
+            >
+            <span>Afficher uniquement les spécialités commercialisées</span>
+        </label>
+        <button type="submit" class="btn-secondary">Appliquer</button>
+    </form>
+</section>
+
+{% if substance.status == "page_out_of_range" %}
+<section class="alert-box alert-warning" role="status">
+    <h2>Page demandée inexistante</h2>
+    <p>{{ substance.warning }}</p>
+    <div class="pagination-actions" style="margin-top: 0.75rem;">
+        <a href="/substances/{{ substance.code_substance }}{% if pagination_base_qs %}?{{ pagination_base_qs }}&page=1{% endif %}" class="btn-secondary">Revenir à la page 1</a>
+        {% if substance.pagination.total_pages > 1 %}
+        <a href="/substances/{{ substance.code_substance }}?{% if pagination_base_qs %}{{ pagination_base_qs }}&{% endif %}page={{ substance.pagination.total_pages }}" class="btn-secondary">
+            Aller à la dernière page ({{ substance.pagination.total_pages }})
+        </a>
+        {% endif %}
+    </div>
+</section>
+{% elif substance.status == "no_results" %}
+<section class="alert-box alert-warning" role="status">
+    <h2>Aucune spécialité affichée</h2>
+    <p>{{ substance.warning }}</p>
+</section>
+{% endif %}
+
+{% if substance.results %}
+<section class="results-section" aria-label="Spécialités contenant {{ substance.denomination_principale }}">
+    <div class="results-header">
+        <h2>
+            <span class="mono">{{ substance.total_count }}</span>
+            {% if substance.commercialise_only %}
+                spécialité{% if substance.total_count > 1 %}s{% endif %} commercialisée{% if substance.total_count > 1 %}s{% endif %}
+                (sur <span class="mono">{{ substance.total_all_specialites }}</span> référencée{% if substance.total_all_specialites > 1 %}s{% endif %})
+            {% else %}
+                spécialité{% if substance.total_count > 1 %}s{% endif %} référencée{% if substance.total_count > 1 %}s{% endif %} contenant cette substance active
+            {% endif %}
+            {% if substance.pagination.total_pages > 1 %}
+                <span class="results-page-meta">(page <span class="mono">{{ substance.pagination.page }}</span> / <span class="mono">{{ substance.pagination.total_pages }}</span>)</span>
+            {% endif %}
+        </h2>
+        <p class="provenance-tag">Source : <code>{{ substance.source_file }}</code></p>
+    </div>
+
+    <div class="results-list">
+        {% for item in substance.results %}
+        <article class="med-card">
+            <div class="med-card-top">
+                <div class="med-card-heading">
+                    <h3 class="med-title">
+                        <a href="/medicaments/{{ item.code_cis }}{{ return_query_suffix }}">{{ item.denomination }}</a>
+                    </h3>
+                    <p class="med-meta">
+                        <span class="meta-item">
+                            <strong>CIS :</strong> <code class="mono">{{ item.code_cis }}</code>
+                            <button
+                                type="button"
+                                class="copy-btn"
+                                data-copy-value="{{ item.code_cis }}"
+                                data-copy-label="Code CIS"
+                                aria-label="Copier le code CIS {{ item.code_cis }}"
+                            >Copier</button>
+                        </span>
+                        {% if item.forme_pharmaceutique %}
+                        <span class="meta-item"><strong>Forme :</strong> {{ item.forme_pharmaceutique }}</span>
+                        {% endif %}
+                        {% if item.titulaires %}
+                        <span class="meta-item"><strong>Titulaire :</strong> {{ item.titulaires }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="med-badges">
+                    {% if item.etat_commercialisation == "Commercialisée" %}
+                        <span class="badge badge-active">Commercialisée</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ item.etat_commercialisation or "Statut non précisé" }}</span>
+                    {% endif %}
+                    {% if item.generic_status == "princeps" %}
+                        <span class="badge badge-princeps">Princeps (référence)</span>
+                    {% elif item.generic_status == "generic" %}
+                        <span class="badge badge-generic">Générique</span>
+                    {% endif %}
+                    {% if item.is_prescription_required %}
+                        <span class="badge badge-vigilance">Sur prescription</span>
+                    {% endif %}
+                    {% if item.important_info_count > 0 %}
+                        <span class="badge badge-ansm">{{ item.important_info_count }} info(s) ANSM disponible(s)</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if item.compositions %}
+            <div class="med-substances">
+                <strong>Composition déclarée (<code>CIS_COMPO_bdpm.txt</code>) :</strong>
+                <ul>
+                    {% for comp in item.compositions %}
+                    <li>
+                        {% if comp.nature_composant == "SA" and comp.code_substance %}
+                            <a href="/substances/{{ comp.code_substance }}" class="subst-name">{{ comp.substance }}</a>
+                        {% else %}
+                            <span class="subst-name">{{ comp.substance }}</span>
+                        {% endif %}
+                        {% if comp.dosage %}— <strong class="mono">{{ comp.dosage }}</strong>{% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="med-card-actions">
+                <a href="/medicaments/{{ item.code_cis }}{{ return_query_suffix }}" class="btn-secondary">
+                    Consulter la fiche complète →
+                </a>
+                <a href="{{ item.official_fiche_url }}" target="_blank" rel="noopener noreferrer" class="link-external">
+                    Notice &amp; RCP officiels (BDPM) ↗
+                </a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+
+    {% if substance.pagination.total_pages > 1 %}
+    <nav class="pagination-bar" aria-label="Pagination des spécialités de la substance">
+        <div class="pagination-summary">
+            Page <strong class="mono">{{ substance.pagination.page }}</strong> sur <strong class="mono">{{ substance.pagination.total_pages }}</strong>
+            — <span class="mono">{{ substance.total_count }}</span> spécialité{% if substance.total_count > 1 %}s{% endif %}
+        </div>
+        <div class="pagination-actions">
+            {% if substance.pagination.has_prev %}
+            <a href="/substances/{{ substance.code_substance }}?{% if pagination_base_qs %}{{ pagination_base_qs }}&{% endif %}page={{ substance.pagination.prev_page }}" class="btn-secondary">← Page précédente</a>
+            {% else %}
+            <span class="btn-secondary is-disabled" aria-disabled="true">← Page précédente</span>
+            {% endif %}
+
+            {% if substance.pagination.has_next %}
+            <a href="/substances/{{ substance.code_substance }}?{% if pagination_base_qs %}{{ pagination_base_qs }}&{% endif %}page={{ substance.pagination.next_page }}" class="btn-secondary">Page suivante →</a>
+            {% else %}
+            <span class="btn-secondary is-disabled" aria-disabled="true">Page suivante →</span>
+            {% endif %}
+        </div>
+    </nav>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}

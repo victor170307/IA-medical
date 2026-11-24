@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Catalogue alphabétique ({{ catalogue.letter }}) — Données publiques BDPM{% endblock %}
+
+{% block content %}
+{% set return_query_suffix = "?return_to=" ~ (current_return_path | urlencode) %}
+{% set start_idx = ((catalogue.pagination.page - 1) * catalogue.pagination.per_page) + 1 %}
+{% set end_idx = start_idx + catalogue.count - 1 %}
+
+<section class="search-hero" aria-labelledby="catalogue-heading">
+    <h1 id="catalogue-heading">Catalogue alphabétique des spécialités (A–Z)</h1>
+    <p class="helper-text">
+        Parcourez les médicaments référencés dans la BDPM par initiale de dénomination, filtrez à l'intérieur de la lettre sélectionnée et accédez directement à chaque fiche.
+        Source directe : <code>CIS_bdpm.txt</code> et <code>CIS_COMPO_bdpm.txt</code>.
+    </p>
+
+    <nav class="alpha-bar" aria-label="Sélection par lettre initiale">
+        {% for entry in catalogue.letters %}
+        <a
+            href="/catalogue?lettre={{ entry.letter | urlencode }}{% if catalogue.commercialise_only %}&commercialise_only=true{% endif %}"
+            class="alpha-btn {% if entry.letter == catalogue.letter %}is-active{% endif %} {% if entry.count == 0 %}is-empty{% endif %}"
+            {% if entry.letter == catalogue.letter %}aria-current="page"{% endif %}
+            title="{{ entry.count }} spécialité(s){% if catalogue.commercialise_only %} commercialisée(s){% endif %}"
+        >
+            <span>{{ entry.letter }}</span>
+            <small class="mono">{{ entry.count }}</small>
+        </a>
+        {% endfor %}
+    </nav>
+
+    <form action="/catalogue" method="get" class="catalogue-toolbar" role="search">
+        <input type="hidden" name="lettre" value="{{ catalogue.letter }}">
+
+        <div class="catalogue-search-row">
+            <div class="search-input-wrapper">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input
+                    type="search"
+                    id="catalogue-search-input"
+                    name="q"
+                    value="{{ query }}"
+                    placeholder="Rechercher dans la lettre {{ catalogue.letter }} (nom, substance, dosage, forme, CIS)..."
+                    aria-label="Rechercher une spécialité commençant par la lettre {{ catalogue.letter }}"
+                    class="search-input"
+                    autocomplete="off"
+                >
+            </div>
+            <button type="submit" class="btn-primary">Rechercher</button>
+            {% if query %}
+            <a
+                href="/catalogue?lettre={{ catalogue.letter | urlencode }}{% if catalogue.commercialise_only %}&commercialise_only=true{% endif %}"
+                class="btn-secondary"
+            >Effacer</a>
+            {% endif %}
+        </div>
+
+        <div class="catalogue-filter-row">
+            <label class="checkbox-label">
+                <input
+                    type="checkbox"
+                    name="commercialise_only"
+                    value="true"
+                    {% if catalogue.commercialise_only %}checked{% endif %}
+                    onchange="this.form.submit()"
+                >
+                <span>Commercialisées uniquement</span>
+            </label>
+            <span class="provenance-tag">
+                La recherche porte uniquement sur les spécialités commençant par <strong>« {{ catalogue.letter }} »</strong> (<span class="mono">{{ catalogue.letter_total_count }}</span> dans cette lettre).
+            </span>
+        </div>
+    </form>
+</section>
+
+{% if catalogue.status == "no_results" or catalogue.status == "database_empty" %}
+<section class="alert-box alert-warning" role="status">
+    <h2>Aucune spécialité trouvée</h2>
+    <p>{{ catalogue.warning }}</p>
+    {% if query %}
+    <p style="margin-top: 0.65rem;">
+        <a
+            href="/catalogue?lettre={{ catalogue.letter | urlencode }}{% if catalogue.commercialise_only %}&commercialise_only=true{% endif %}"
+            class="btn-secondary"
+        >Afficher toutes les spécialités de la lettre {{ catalogue.letter }}</a>
+    </p>
+    {% endif %}
+</section>
+{% endif %}
+
+{% if catalogue.results %}
+<section class="results-section" aria-label="Spécialités de la lettre {{ catalogue.letter }}">
+    <div class="results-header">
+        <h2>
+            Lettre « {{ catalogue.letter }} » — <span class="mono">{{ catalogue.total_count }}</span>
+            {% if catalogue.commercialise_only %}
+                spécialité{% if catalogue.total_count > 1 %}s{% endif %} commercialisée{% if catalogue.total_count > 1 %}s{% endif %}
+            {% else %}
+                spécialité{% if catalogue.total_count > 1 %}s{% endif %} référencée{% if catalogue.total_count > 1 %}s{% endif %}
+            {% endif %}
+            {% if query %}pour « {{ query }} »{% endif %}
+            {% if catalogue.pagination.total_pages > 1 %}
+                <span class="results-page-meta">(page <span class="mono">{{ catalogue.pagination.page }}</span> / <span class="mono">{{ catalogue.pagination.total_pages }}</span>)</span>
+            {% endif %}
+        </h2>
+        <p class="provenance-tag">
+            Affichage <span class="mono">{{ start_idx }}–{{ end_idx }}</span> sur <span class="mono">{{ catalogue.total_count }}</span>
+            · Base BDPM : <span class="mono">{{ metadata.commercialisees_count }}</span> commercialisées sur <span class="mono">{{ metadata.specialites_count }}</span> référencées
+        </p>
+    </div>
+
+    <ul class="catalogue-list">
+        {% for item in catalogue.results %}
+        <li>
+            <a href="/medicaments/{{ item.code_cis }}{{ return_query_suffix }}" class="catalogue-item">
+                <div class="catalogue-item-main">
+                    <span class="catalogue-item-name">{{ item.denomination }}</span>
+                    <span class="catalogue-item-sub">
+                        {% if item.official_sa_dosage_entries %}
+                            <span class="catalogue-dosages">
+                                {%- if item.official_sa_dosage_entries | length == 1 -%}
+                                    <span class="mono">{{ item.official_sa_dosage_entries[0].dosage }}</span>
+                                {%- else -%}
+                                    {%- for entry in item.official_sa_dosage_entries -%}
+                                        <span class="catalogue-dosage-pair"><span class="catalogue-dosage-substance">{{ entry.substance }}</span> : <span class="mono">{{ entry.dosage }}</span></span>{% if not loop.last %}<span class="catalogue-dosage-sep" aria-hidden="true"> · </span>{% endif %}
+                                    {%- endfor -%}
+                                {%- endif -%}
+                            </span>
+                        {% endif %}
+                        {% if item.official_sa_dosage_entries and item.forme_pharmaceutique %}
+                            <span class="catalogue-sep" aria-hidden="true">•</span>
+                        {% endif %}
+                        {% if item.forme_pharmaceutique %}
+                            <span>{{ item.forme_pharmaceutique }}</span>
+                        {% endif %}
+                        {% if item.official_sa_dosage_entries or item.forme_pharmaceutique %}
+                            <span class="catalogue-sep" aria-hidden="true">•</span>
+                        {% endif %}
+                        <span class="catalogue-cis">CIS <span class="mono">{{ item.code_cis }}</span></span>
+                    </span>
+                </div>
+
+                <div class="catalogue-item-side">
+                    {% if item.etat_commercialisation == "Commercialisée" %}
+                        <span class="badge badge-active">Commercialisée</span>
+                    {% else %}
+                        <span class="badge badge-neutral">{{ item.etat_commercialisation or "Statut non précisé" }}</span>
+                    {% endif %}
+                    <span class="catalogue-item-arrow" aria-hidden="true">→</span>
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    {% if catalogue.pagination.total_pages > 1 %}
+    <nav class="pagination-bar" aria-label="Pagination du catalogue">
+        <div class="pagination-summary">
+            Page <strong class="mono">{{ catalogue.pagination.page }}</strong> sur <strong class="mono">{{ catalogue.pagination.total_pages }}</strong>
+            — <span class="mono">{{ catalogue.total_count }}</span> spécialité{% if catalogue.total_count > 1 %}s{% endif %}
+            {% if query %}pour « {{ query }} »{% endif %}
+        </div>
+        <div class="pagination-actions">
+            {% if catalogue.pagination.has_prev %}
+            <a href="/catalogue?{{ pagination_base_qs }}&page={{ catalogue.pagination.prev_page }}" class="btn-secondary">← Précédent</a>
+            {% else %}
+            <span class="btn-secondary is-disabled" aria-disabled="true">← Précédent</span>
+            {% endif %}
+
+            {% if catalogue.pagination.has_next %}
+            <a href="/catalogue?{{ pagination_base_qs }}&page={{ catalogue.pagination.next_page }}" class="btn-secondary">Suivant →</a>
+            {% else %}
+            <span class="btn-secondary is-disabled" aria-disabled="true">Suivant →</span>
+            {% endif %}
+        </div>
+    </nav>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -3,8 +3,7 @@
 {% block title %}{% if query %}{{ query }} — {% endif %}Recherche de médicaments — Données publiques BDPM{% endblock %}
 
 {% block content %}
-{% if query and query.strip() %}
-    {% set current_return_path = "/?q=" ~ (query.strip() | urlencode) ~ "&fuzzy=" ~ ("true" if fuzzy else "false") %}
+{% if current_return_path and current_return_path != "/" %}
     {% set return_query_suffix = "?return_to=" ~ (current_return_path | urlencode) %}
 {% else %}
     {% set return_query_suffix = "" %}
@@ -41,6 +40,72 @@
             </div>
             <button type="submit" class="btn-primary">Rechercher</button>
         </div>
+
+        <!-- Filtres combinables fondés sur les colonnes officielles BDPM -->
+        <fieldset class="filters-panel">
+            <legend class="sr-only">Filtres combinables</legend>
+            <div class="filters-grid">
+                <div class="filter-field">
+                    <label for="filter-generic-role" class="filter-label">Type de spécialité</label>
+                    <select id="filter-generic-role" name="generic_role" class="filter-select">
+                        <option value="" {% if not filters.generic_role %}selected{% endif %}>Toutes les spécialités</option>
+                        <option value="in_group" {% if filters.generic_role == "in_group" %}selected{% endif %}>Appartenant à un groupe générique</option>
+                        <option value="generic" {% if filters.generic_role == "generic" %}selected{% endif %}>Génériques uniquement</option>
+                        <option value="princeps" {% if filters.generic_role == "princeps" %}selected{% endif %}>Princeps uniquement</option>
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <label for="filter-forme" class="filter-label">Forme pharmaceutique</label>
+                    <select id="filter-forme" name="forme" class="filter-select">
+                        <option value="">Toutes les formes</option>
+                        {% set ns_form = namespace(matched=false) %}
+                        {% for f in available_forms %}
+                            {% if filters.forme == f.forme %}{% set ns_form.matched = true %}{% endif %}
+                            <option value="{{ f.forme }}" {% if filters.forme == f.forme %}selected{% endif %}>
+                                {{ f.forme }} ({{ f.count }})
+                            </option>
+                        {% endfor %}
+                        {% if filters.forme and not ns_form.matched %}
+                            <option value="{{ filters.forme }}" selected>{{ filters.forme }}</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="filter-field">
+                    <label for="filter-per-page" class="filter-label">Résultats par page</label>
+                    <select id="filter-per-page" name="per_page" class="filter-select">
+                        <option value="10" {% if per_page == 10 %}selected{% endif %}>10 par page</option>
+                        <option value="20" {% if per_page == 20 %}selected{% endif %}>20 par page</option>
+                        <option value="30" {% if per_page == 30 %}selected{% endif %}>30 par page</option>
+                        <option value="50" {% if per_page == 50 %}selected{% endif %}>50 par page</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="filters-checks-row">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="filter-commercialise" name="commercialise_only" value="true" {% if filters.commercialise_only %}checked{% endif %}>
+                    <span>Commercialisées uniquement</span>
+                </label>
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="filter-prescription" name="prescription_only" value="true" {% if filters.prescription_only %}checked{% endif %}>
+                    <span>Médicaments soumis à prescription</span>
+                </label>
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="filter-ansm" name="with_ansm_info" value="true" {% if filters.with_ansm_info %}checked{% endif %}>
+                    <span>Informations ANSM disponibles</span>
+                </label>
+
+                {% if active_filter_count > 0 or query.strip() %}
+                <a href="/" id="reset-filters-link" class="filter-reset-link">Réinitialiser</a>
+                {% else %}
+                <a href="/" id="reset-filters-link" class="filter-reset-link" hidden>Réinitialiser</a>
+                {% endif %}
+            </div>
+        </fieldset>
 
         <div class="search-options-row">
             <label class="checkbox-label">
@@ -91,6 +156,19 @@
         <h2>Attention — Résultats proposés par approximation orthographique</h2>
         <p>{{ search.warning }}</p>
     </section>
+    {% elif search.status == "page_out_of_range" %}
+    <section class="alert-box alert-warning" role="status">
+        <h2>Page demandée inexistante</h2>
+        <p>{{ search.warning }}</p>
+        <div class="pagination-actions" style="margin-top: 0.75rem;">
+            <a href="/{% if pagination_base_qs %}?{{ pagination_base_qs }}&page=1{% endif %}" class="btn-secondary">Revenir à la page 1</a>
+            {% if search.pagination.total_pages > 1 %}
+            <a href="/?{% if pagination_base_qs %}{{ pagination_base_qs }}&{% endif %}page={{ search.pagination.total_pages }}" class="btn-secondary">
+                Aller à la dernière page ({{ search.pagination.total_pages }})
+            </a>
+            {% endif %}
+        </div>
+    </section>
     {% elif search.status == "no_results" %}
     <section class="alert-box alert-error" role="status">
         <h2>Aucun résultat trouvé</h2>
@@ -102,11 +180,23 @@
     <section class="results-section" aria-label="Résultats de recherche">
         <div class="results-header">
             <h2>
-                <span class="mono">{{ search.count }}</span> résultat{% if search.count > 1 %}s{% endif %}
-                pour « {{ search.query }} »
+                <span class="mono">{{ search.total_count }}</span>
+                {% if filters.commercialise_only %}
+                    spécialité{% if search.total_count > 1 %}s{% endif %} commercialisée{% if search.total_count > 1 %}s{% endif %}
+                {% else %}
+                    résultat{% if search.total_count > 1 %}s{% endif %}
+                {% endif %}
+                {% if search.query %}pour « {{ search.query }} »{% else %}correspondant aux filtres actifs{% endif %}
+                {% if search.pagination.total_pages > 1 %}
+                    <span class="results-page-meta">(page <span class="mono">{{ search.pagination.page }}</span> / <span class="mono">{{ search.pagination.total_pages }}</span>)</span>
+                {% endif %}
             </h2>
             <p class="provenance-tag">
-                Sources directes : <code>CIS_bdpm.txt</code>, <code>CIS_COMPO_bdpm.txt</code> et <code>CIS_GENER_bdpm.txt</code>
+                {% if filters.commercialise_only %}
+                    Filtre actif : commercialisées uniquement (parmi <span class="mono">{{ metadata.commercialisees_count }}</span> commercialisées sur <span class="mono">{{ metadata.specialites_count }}</span> référencées en base)
+                {% else %}
+                    Base BDPM : <span class="mono">{{ metadata.specialites_count }}</span> spécialités référencées (dont <span class="mono">{{ metadata.commercialisees_count }}</span> commercialisées)
+                {% endif %}
             </p>
         </div>
 
@@ -147,6 +237,20 @@
                             <span class="badge badge-neutral">{{ item.etat_commercialisation or "Statut non précisé" }}</span>
                         {% endif %}
 
+                        {% if item.generic_status == "princeps" %}
+                            <span class="badge badge-princeps">Princeps (référence)</span>
+                        {% elif item.generic_status == "generic" %}
+                            <span class="badge badge-generic">Générique</span>
+                        {% elif item.generic_status == "mixed" %}
+                            <span class="badge badge-generic">Groupe générique (rôles multiples)</span>
+                        {% elif item.generic_status == "in_group" %}
+                            <span class="badge badge-generic">Groupe générique</span>
+                        {% endif %}
+
+                        {% if item.is_prescription_required %}
+                            <span class="badge badge-vigilance">Sur prescription</span>
+                        {% endif %}
+
                         {% if item.surveillance_renforcee == "Oui" %}
                             <span class="badge badge-vigilance">▼ Surveillance renforcée</span>
                         {% endif %}
@@ -156,7 +260,7 @@
                         {% endif %}
 
                         {% if item.important_info_count > 0 %}
-                            <span class="badge badge-alert">{{ item.important_info_count }} info(s) sécurité ANSM</span>
+                            <span class="badge badge-ansm">{{ item.important_info_count }} info(s) ANSM disponible(s)</span>
                         {% endif %}
                     </div>
                 </div>
@@ -166,8 +270,12 @@
                     <strong>Groupe(s) générique(s) (<code>CIS_GENER_bdpm.txt</code>) :</strong>
                     {% for gen in item.groupes_generiques %}
                     <div class="generic-line">
-                        <span>{{ gen.libelle_groupe }}</span>
-                        <span class="badge badge-generic">{{ gen.type_generique_libelle }}</span>
+                        <a href="/generiques/{{ gen.identifiant_groupe }}">{{ gen.libelle_groupe }}</a>
+                        {% if gen.type_generique_code == "0" %}
+                            <span class="badge badge-princeps">{{ gen.type_generique_libelle }}</span>
+                        {% else %}
+                            <span class="badge badge-generic">{{ gen.type_generique_libelle }}</span>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
@@ -179,7 +287,11 @@
                     <ul>
                         {% for comp in item.compositions %}
                         <li>
-                            <span class="subst-name">{{ comp.substance }}</span>
+                            {% if comp.nature_composant == "SA" and comp.code_substance %}
+                                <a href="/substances/{{ comp.code_substance }}" class="subst-name">{{ comp.substance }}</a>
+                            {% else %}
+                                <span class="subst-name">{{ comp.substance }}</span>
+                            {% endif %}
                             {% if comp.dosage %}
                                 — <strong class="mono">{{ comp.dosage }}</strong>
                             {% else %}
@@ -209,14 +321,51 @@
             </article>
             {% endfor %}
         </div>
+
+        {% if search.pagination.total_pages > 1 %}
+        <nav class="pagination-bar" aria-label="Pagination des résultats">
+            <div class="pagination-summary">
+                Page <strong class="mono">{{ search.pagination.page }}</strong> sur <strong class="mono">{{ search.pagination.total_pages }}</strong>
+                — <span class="mono">{{ search.total_count }}</span> résultat{% if search.total_count > 1 %}s{% endif %} au total
+            </div>
+            <div class="pagination-actions">
+                {% if search.pagination.has_prev %}
+                <a
+                    href="/?{% if pagination_base_qs %}{{ pagination_base_qs }}&{% endif %}page={{ search.pagination.prev_page }}"
+                    class="btn-secondary"
+                    data-page="{{ search.pagination.prev_page }}"
+                >← Page précédente</a>
+                {% else %}
+                <span class="btn-secondary is-disabled" aria-disabled="true">← Page précédente</span>
+                {% endif %}
+
+                {% if search.pagination.has_next %}
+                <a
+                    href="/?{% if pagination_base_qs %}{{ pagination_base_qs }}&{% endif %}page={{ search.pagination.next_page }}"
+                    class="btn-secondary"
+                    data-page="{{ search.pagination.next_page }}"
+                >Page suivante →</a>
+                {% else %}
+                <span class="btn-secondary is-disabled" aria-disabled="true">Page suivante →</span>
+                {% endif %}
+            </div>
+        </nav>
+        {% endif %}
     </section>
     {% endif %}
 {% elif initial_medications %}
     <section class="results-section" id="initial-overview-section" aria-label="Aperçu initial des spécialités">
         <div class="results-header">
-            <h2>Aperçu de spécialités commercialisées (saisissez un terme ci-dessus pour filtrer en direct)</h2>
+            <h2>
+                {% if (metadata.commercialisees_count | int) > 0 %}
+                    Aperçu des spécialités commercialisées (<span class="mono">{{ initial_medications | length }}</span> affichées)
+                {% else %}
+                    Aperçu des spécialités référencées (<span class="mono">{{ initial_medications | length }}</span> affichées)
+                {% endif %}
+            </h2>
             <p class="provenance-tag">
-                <span class="mono">{{ metadata.specialites_count }}</span> spécialités référencées dans <code>bdpm.sqlite3</code>
+                <span class="mono">{{ metadata.commercialisees_count }}</span> commercialisées sur <span class="mono">{{ metadata.specialites_count }}</span> spécialités référencées dans <code>bdpm.sqlite3</code>
+                — <a href="/catalogue">Parcourir le catalogue A–Z →</a>
             </p>
         </div>
 
@@ -256,11 +405,16 @@
                         {% else %}
                             <span class="badge badge-neutral">{{ item.etat_commercialisation or "Statut non précisé" }}</span>
                         {% endif %}
+                        {% if item.generic_status == "princeps" %}
+                            <span class="badge badge-princeps">Princeps (référence)</span>
+                        {% elif item.generic_status == "generic" %}
+                            <span class="badge badge-generic">Générique</span>
+                        {% endif %}
                         {% if item.surveillance_renforcee == "Oui" %}
                             <span class="badge badge-vigilance">▼ Surveillance renforcée</span>
                         {% endif %}
                         {% if item.important_info_count > 0 %}
-                            <span class="badge badge-alert">{{ item.important_info_count }} info(s) sécurité ANSM</span>
+                            <span class="badge badge-ansm">{{ item.important_info_count }} info(s) ANSM disponible(s)</span>
                         {% endif %}
                     </div>
                 </div>
@@ -271,7 +425,11 @@
                     <ul>
                         {% for comp in item.compositions %}
                         <li>
-                            <span class="subst-name">{{ comp.substance }}</span>
+                            {% if comp.nature_composant == "SA" and comp.code_substance %}
+                                <a href="/substances/{{ comp.code_substance }}" class="subst-name">{{ comp.substance }}</a>
+                            {% else %}
+                                <span class="subst-name">{{ comp.substance }}</span>
+                            {% endif %}
                             {% if comp.dosage %}
                                 — <strong class="mono">{{ comp.dosage }}</strong>
                             {% else %}

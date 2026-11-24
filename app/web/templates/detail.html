@@ -49,7 +49,7 @@
 <nav class="mobile-section-nav" aria-label="Accès rapide aux sections de la fiche">
     <a href="#synthese">1. Synthèse</a>
     <a href="#documents-officiels">2. Notice &amp; RCP</a>
-    <a href="#infos-ansm">3. Alertes ANSM</a>
+    <a href="#infos-ansm">3. Infos ANSM</a>
     <a href="#composition">4. Composition</a>
     <a href="#prescription">5. Prescription</a>
     <a href="#presentations">6. Présentations</a>
@@ -91,6 +91,10 @@
                     <span class="badge badge-vigilance">▼ Surveillance renforcée</span>
                 {% endif %}
 
+                {% if med.is_prescription_required %}
+                    <span class="badge badge-vigilance">Soumis à prescription</span>
+                {% endif %}
+
                 {% if med.statut_bdm %}
                     {% set bdm_low = med.statut_bdm | lower %}
                     {% if "rupture" in bdm_low or "alerte" in bdm_low %}
@@ -101,7 +105,16 @@
                 {% endif %}
 
                 {% if med.groupes_generiques %}
-                    <span class="badge badge-generic">Rattaché à {{ med.groupes_generiques | length }} groupe(s) générique(s)</span>
+                    {% set gen_codes = med.groupes_generiques | map(attribute='type_generique_code') | list %}
+                    {% if "0" in gen_codes %}
+                        <span class="badge badge-princeps">Princeps (référence)</span>
+                    {% else %}
+                        <span class="badge badge-generic">Générique ({{ med.groupes_generiques | length }} groupe(s))</span>
+                    {% endif %}
+                {% endif %}
+
+                {% if med.infos_importantes %}
+                    <span class="badge badge-ansm">{{ med.infos_importantes | length }} info(s) ANSM disponible(s)</span>
                 {% endif %}
             </div>
 
@@ -164,7 +177,7 @@
                     Cette fiche regroupe <strong class="mono">{{ med.compositions | length }}</strong> ligne(s) de composition déclarée(s),
                     <strong class="mono">{{ ns.active_pres | length }}</strong> présentation(s) active(s),
                     <strong class="mono">{{ ns.inactive_pres | length }}</strong> présentation(s) arrêtée(s) ou abrogée(s)
-                    et <strong class="mono">{{ med.infos_importantes | length }}</strong> information(s) importante(s) ANSM.
+                    et <strong class="mono">{{ med.infos_importantes | length }}</strong> information(s) ANSM disponible(s).
                 </p>
             </div>
         </section>
@@ -183,23 +196,23 @@
             </div>
         </section>
 
-        <!-- 3. Informations importantes de l'ANSM -->
+        <!-- 3. Informations ANSM disponibles -->
         <section id="infos-ansm" class="detail-card" aria-labelledby="heading-ansm">
             <div class="section-header">
-                <h2 id="heading-ansm">3. Informations importantes de sécurité (ANSM)</h2>
+                <h2 id="heading-ansm">3. Informations ANSM disponibles</h2>
                 <span class="source-pill">Source : <code>CIS_InfoImportantes.txt</code></span>
             </div>
 
             {% if med.infos_importantes %}
-            <div class="alert-box alert-danger" style="margin-bottom: 0;">
-                <h3>{{ med.infos_importantes | length }} alerte(s) ou information(s) officielle(s) publiée(s) par l'ANSM</h3>
+            <div class="alert-box alert-info" style="margin-bottom: 0;">
+                <h3>{{ med.infos_importantes | length }} information(s) ANSM disponible(s) pour cette spécialité</h3>
                 <ul>
                     {% for info in med.infos_importantes %}
                     <li>
                         <strong class="mono">Du {{ info.date_debut or "?" }}{% if info.date_fin %} au {{ info.date_fin }}{% endif %} :</strong>
                         {{ info.texte_information }}
                         {% if info.lien_ansm %}
-                            — <a href="{{ info.lien_ansm }}" target="_blank" rel="noopener noreferrer">Consulter le document officiel ANSM ↗</a>
+                            — <a href="{{ info.lien_ansm }}" target="_blank" rel="noopener noreferrer">Consulter la publication officielle ANSM ↗</a>
                         {% endif %}
                     </li>
                     {% endfor %}
@@ -207,7 +220,7 @@
             </div>
             {% else %}
             <p class="missing-data" style="margin-top: 0;">
-                Aucune information importante ou alerte de sécurité en cours n'est rattachée à ce code CIS dans <code>CIS_InfoImportantes.txt</code>.
+                Aucune information ANSM n'est rattachée à ce code CIS dans <code>CIS_InfoImportantes.txt</code>.
             </p>
             {% endif %}
         </section>
@@ -235,7 +248,11 @@
                         <tr>
                             <td data-label="Substance">
                                 <span>
-                                    <strong>{{ c.denomination_substance }}</strong>
+                                    {% if c.nature_composant == "SA" and c.code_substance %}
+                                        <a href="/substances/{{ c.code_substance }}"><strong>{{ c.denomination_substance }}</strong></a>
+                                    {% else %}
+                                        <strong>{{ c.denomination_substance }}</strong>
+                                    {% endif %}
                                     <small class="mono">(code {{ c.code_substance or "non précisé" }})</small>
                                 </span>
                             </td>
@@ -262,7 +279,7 @@
                 </table>
             </div>
             <p class="provenance-tag" style="margin-top: 0.75rem;">
-                Note de prudence : le partage d'une même substance active ne signifie pas automatiquement que deux médicaments sont médicalement substituables.
+                Note de prudence : le partage d'une même substance active (nature SA) ne signifie pas automatiquement que deux médicaments sont médicalement substituables.
             </p>
             {% else %}
             <p class="missing-data" style="margin-top: 0;">
@@ -512,9 +529,19 @@
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap;">
                         <div>
                             <strong>Groupe générique n° <span class="mono">{{ g.identifiant_groupe }}</span> :</strong>
-                            {{ g.libelle_groupe }}
+                            <a href="/generiques/{{ g.identifiant_groupe }}">{{ g.libelle_groupe }}</a>
                         </div>
-                        <span class="badge badge-generic">{{ g.type_generique_libelle }}</span>
+                        {% if g.type_generique_code == "0" %}
+                            <span class="badge badge-princeps">{{ g.type_generique_libelle }}</span>
+                        {% else %}
+                            <span class="badge badge-generic">{{ g.type_generique_libelle }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div style="margin-top: 0.65rem;">
+                        <a href="/generiques/{{ g.identifiant_groupe }}" class="btn-secondary">
+                            Ouvrir la page complète du groupe générique →
+                        </a>
                     </div>
 
                     {% if g.autres_specialites %}
@@ -531,7 +558,11 @@
                                         <small class="mono">(CIS {{ peer.code_cis }})</small>
                                     </div>
                                     <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
-                                        <span class="badge badge-generic">{{ peer.type_generique_libelle }}</span>
+                                        {% if "princeps" in (peer.type_generique_libelle | lower) %}
+                                            <span class="badge badge-princeps">{{ peer.type_generique_libelle }}</span>
+                                        {% else %}
+                                            <span class="badge badge-generic">{{ peer.type_generique_libelle }}</span>
+                                        {% endif %}
                                         {% if peer.etat_commercialisation == "Commercialisée" %}
                                             <span class="badge badge-active">Commercialisée</span>
                                         {% else %}
