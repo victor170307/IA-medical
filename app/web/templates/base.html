@@ -1,61 +1,102 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Référentiel Médicaments — Données Publiques BDPM{% endblock %}</title>
+    <script>
+        /* Application immédiate du thème mémorisé avant le premier rendu (évite tout flash blanc en mode sombre) */
+        (function () {
+            try {
+                var saved = localStorage.getItem("bdpm_theme_preference");
+                var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+                var theme = (saved === "dark" || saved === "light") ? saved : (prefersDark ? "dark" : "light");
+                document.documentElement.setAttribute("data-theme", theme);
+                document.documentElement.style.colorScheme = theme;
+            } catch (e) {
+                document.documentElement.setAttribute("data-theme", "light");
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Aller au contenu principal</a>
+
     <header class="site-header">
         <div class="container header-inner">
-            <div>
-                <a href="/" class="brand-title">Référentiel Médicaments (Palier 1 — BDPM)</a>
-                <p class="brand-subtitle">
-                    Recherche documentaire fondée exclusivement sur les fichiers ouverts de la Base de données publique des médicaments
-                </p>
-            </div>
-            <div class="status-pill">
+            <a href="/" class="brand-link">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                </span>
+                <span class="brand-text">
+                    <span class="brand-title">Référentiel Médicaments BDPM</span>
+                    <span class="brand-subtitle">Consultation documentaire fondée sur les données publiques françaises</span>
+                </span>
+            </a>
+
+            <div class="header-controls">
                 {% if metadata.ready == "true" %}
-                    <span class="badge badge-ok">Base active : {{ metadata.specialites_count }} spécialités</span>
+                    <span class="badge badge-active" title="Mise à jour officielle BDPM : {{ metadata.official_bdpm_date }}">
+                        Base active : <span class="mono">{{ metadata.specialites_count }}</span> spécialités
+                    </span>
                 {% else %}
-                    <span class="badge badge-warn">Base locale vide</span>
+                    <span class="badge badge-vigilance">Base locale non initialisée</span>
                 {% endif %}
+
+                <button type="button" id="theme-toggle" class="theme-toggle" aria-pressed="false" aria-label="Basculer entre le mode clair et le mode sombre">
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="5"/>
+                        <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                    </svg>
+                    <span class="theme-toggle-label">Mode sombre</span>
+                </button>
             </div>
         </div>
     </header>
 
-    <div class="disclaimer-banner">
-        <div class="container">
+    <div class="disclaimer-banner" role="note" aria-label="Avertissement documentaire">
+        <div class="container disclaimer-inner">
             <strong>Information documentaire uniquement :</strong>
-            Cette application affiche les données publiques de la BDPM sans les modifier ni formuler de recommandation médicale.
-            Elle ne remplace jamais l'avis d'un médecin ou d'un pharmacien.
+            <span>
+                Cette application présente les données publiques officielles de la BDPM sans les modifier ni formuler de diagnostic ou de recommandation médicale.
+                Elle ne remplace jamais l'avis d'un médecin ou d'un pharmacien.
+            </span>
         </div>
     </div>
 
-    <main class="container main-content">
+    <main id="main-content" class="container main-content">
         {% block content %}{% endblock %}
     </main>
+
+    <div id="ui-toast" class="ui-toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <footer class="site-footer">
         <div class="container footer-inner">
             <p>
-                <strong>Source des données :</strong>
+                <strong>Source officielle des données :</strong>
                 <a href="{{ metadata.source_url }}" target="_blank" rel="noopener noreferrer">
                     {{ metadata.source_name }} ({{ metadata.source_url }})
                 </a>
             </p>
             <p>
-                <strong>Date de mise à jour BDPM relevée :</strong> {{ metadata.official_bdpm_date }}
-                &nbsp;|&nbsp;
-                <strong>Date d'import local (UTC) :</strong> {{ metadata.imported_at_utc }}
+                <strong>Date de mise à jour BDPM relevée :</strong> <span class="mono">{{ metadata.official_bdpm_date }}</span>
+                &nbsp;•&nbsp;
+                <strong>Date d'import local (UTC) :</strong> <span class="mono">{{ metadata.imported_at_utc }}</span>
             </p>
             <p class="legal-notice">
-                Conformément à l'article L. 161-40-1 du code de la sécurité sociale et à la loi CADA, la mention de cette source
-                ne confère aucun caractère officiel à cette application et n'implique aucune reconnaissance ou caution par l'ANSM,
-                la HAS ou l'UNCAM.
+                Conformément à l'article L. 161-40-1 du code de la sécurité sociale et à la loi CADA, la réutilisation de ces données publiques
+                ne confère aucun caractère officiel à cette application et n'implique aucune caution ou validation par l'ANSM, la HAS ou l'UNCAM.
+                Confidentialité : aucun historique de recherche n'est collecté ni stocké ; seul votre choix de thème clair/sombre est mémorisé localement.
             </p>
         </div>
     </footer>
+
+    <script src="/static/app.js" defer></script>
 </body>
 </html>
