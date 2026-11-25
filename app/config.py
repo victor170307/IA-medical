@@ -35,6 +35,15 @@ BDPM_FILES = {
     "CIS_InfoImportantes.txt": f"{BDPM_DOWNLOAD_BASE_URL}/CIS_InfoImportantes.txt",
 }
 
+# Sources complémentaires officielles du Lot 2C (URLs vérifiées sur /telechargement)
+BDPM_LOT2C_FILES = {
+    "CIS_CIP_Dispo_Spec.txt": f"{BDPM_DOWNLOAD_BASE_URL}/file/CIS_CIP_Dispo_Spec.txt",
+    "CIS_HAS_SMR_bdpm.txt": f"{BDPM_DOWNLOAD_BASE_URL}/file/CIS_HAS_SMR_bdpm.txt",
+    "CIS_HAS_ASMR_bdpm.txt": f"{BDPM_DOWNLOAD_BASE_URL}/file/CIS_HAS_ASMR_bdpm.txt",
+    "HAS_LiensPageCT_bdpm.txt": f"{BDPM_DOWNLOAD_BASE_URL}/file/HAS_LiensPageCT_bdpm.txt",
+    "CIS_MITM.txt": f"{BDPM_DOWNLOAD_BASE_URL}/file/CIS_MITM.txt",
+}
+
 
 def get_official_fiche_url(code_cis: str) -> str:
     """Construit le lien officiel vérifié vers la fiche BDPM d'une spécialité (par code CIS)."""

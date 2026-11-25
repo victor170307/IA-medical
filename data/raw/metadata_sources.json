@@ -1,0 +1,77 @@
+{
+  "portal_url": "https://base-donnees-publique.medicaments.gouv.fr/telechargement",
+  "files": {
+    "CIS_CIP_Dispo_Spec.txt": {
+      "filename": "CIS_CIP_Dispo_Spec.txt",
+      "path": "data/raw/CIS_CIP_Dispo_Spec.txt",
+      "url": "https://base-donnees-publique.medicaments.gouv.fr/download/file/CIS_CIP_Dispo_Spec.txt",
+      "optional": true,
+      "status": "ok",
+      "downloaded_at_utc": "2026-11-24T23:35:31Z",
+      "size_bytes": 158130,
+      "sha256": "94872ccb74e05c24f14c801bfc6598ac801d71fd85ea11bdd68719e554348ecf",
+      "http_last_modified": null,
+      "official_source_date": "03/11/2026",
+      "official_date_verified_from": "Page officielle BDPM (https://base-donnees-publique.medicaments.gouv.fr/telechargement)",
+      "official_bdpm_date": "03/11/2026"
+    },
+    "CIS_HAS_SMR_bdpm.txt": {
+      "filename": "CIS_HAS_SMR_bdpm.txt",
+      "path": "data/raw/CIS_HAS_SMR_bdpm.txt",
+      "url": "https://base-donnees-publique.medicaments.gouv.fr/download/file/CIS_HAS_SMR_bdpm.txt",
+      "optional": true,
+      "status": "ok",
+      "downloaded_at_utc": "2026-11-24T23:35:31Z",
+      "size_bytes": 4615538,
+      "sha256": "78e59667a1ff8ba899838e6498426a9dea537b99b88c74afbe6b29a8d4d7118d",
+      "http_last_modified": null,
+      "official_source_date": "20/11/2026",
+      "official_date_verified_from": "Page officielle BDPM (https://base-donnees-publique.medicaments.gouv.fr/telechargement)",
+      "official_bdpm_date": "20/11/2026"
+    },
+    "CIS_HAS_ASMR_bdpm.txt": {
+      "filename": "CIS_HAS_ASMR_bdpm.txt",
+      "path": "data/raw/CIS_HAS_ASMR_bdpm.txt",
+      "url": "https://base-donnees-publique.medicaments.gouv.fr/download/file/CIS_HAS_ASMR_bdpm.txt",
+      "optional": true,
+      "status": "ok",
+      "downloaded_at_utc": "2026-11-24T23:35:31Z",
+      "size_bytes": 4622428,
+      "sha256": "c5f651561dedb325317a559b5f5934407c62776adb429e318fa7494954cce1bc",
+      "http_last_modified": null,
+      "official_source_date": "20/11/2026",
+      "official_date_verified_from": "Page officielle BDPM (https://base-donnees-publique.medicaments.gouv.fr/telechargement)",
+      "official_bdpm_date": "20/11/2026"
+    },
+    "HAS_LiensPageCT_bdpm.txt": {
+      "filename": "HAS_LiensPageCT_bdpm.txt",
+      "path": "data/raw/HAS_LiensPageCT_bdpm.txt",
+      "url": "https://base-donnees-publique.medicaments.gouv.fr/download/file/HAS_LiensPageCT_bdpm.txt",
+      "optional": true,
+      "status": "ok",
+      "downloaded_at_utc": "2026-11-24T23:35:31Z",
+      "size_bytes": 518890,
+      "sha256": "37126c9dbfa5442c740677005d7a8ed4c6b772e65aa4473fb59bcf113a135df4",
+      "http_last_modified": null,
+      "official_source_date": "20/11/2026",
+      "official_date_verified_from": "Page officielle BDPM (https://base-donnees-publique.medicaments.gouv.fr/telechargement)",
+      "official_bdpm_date": "20/11/2026"
+    },
+    "CIS_MITM.txt": {
+      "filename": "CIS_MITM.txt",
+      "path": "data/raw/CIS_MITM.txt",
+      "url": "https://base-donnees-publique.medicaments.gouv.fr/download/file/CIS_MITM.txt",
+      "optional": true,
+      "status": "ok",
+      "downloaded_at_utc": "2026-11-24T23:35:31Z",
+      "size_bytes": 1618769,
+      "sha256": "300f24c39e84466c617eedce9edfd491870259fd5abd2092b3f8296a3b6245fa",
+      "http_last_modified": null,
+      "official_source_date": "13/10/2026",
+      "official_date_verified_from": "Page officielle BDPM (https://base-donnees-publique.medicaments.gouv.fr/telechargement)",
+      "official_bdpm_date": "13/10/2026"
+    }
+  },
+  "portal_global_date": "03/11/2026",
+  "updated_at_utc": "2026-11-24T23:35:31Z"
+}

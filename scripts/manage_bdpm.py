@@ -20,7 +20,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from app.config import DEFAULT_DB_PATH, RAW_BDPM_DIR
 from app.importer.bdpm_importer import import_bdpm_directory
-from app.importer.downloader import download_bdpm_files
+from app.importer.downloader import download_bdpm_files, download_complementary_bdpm_files
 from app.search.service import get_db_metadata
 
 
@@ -62,6 +62,11 @@ def main() -> int:
         help="Affiche l'état actuel de la base SQLite locale",
     )
 
+    subparsers.add_parser(
+        "download-lot2c",
+        help="Télécharge uniquement les 5 sources complémentaires du Lot 2C dans data/raw/",
+    )
+
     args = parser.parse_args()
 
     if args.command in ("download", "download-and-import"):
@@ -85,6 +90,10 @@ def main() -> int:
     if args.command == "status":
         meta = get_db_metadata(DEFAULT_DB_PATH)
         print(json.dumps(meta, indent=2, ensure_ascii=False))
+
+    if args.command == "download-lot2c":
+        info = download_complementary_bdpm_files(target_dir=RAW_BDPM_DIR)
+        print(json.dumps(info, indent=2, ensure_ascii=False))
 
     return 0
 
