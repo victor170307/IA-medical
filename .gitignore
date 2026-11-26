@@ -11,6 +11,7 @@ venv/
 # Données brutes BDPM téléchargées et base SQLite locale
 data/raw/*
 !data/raw/metadata_sources.json
+data/backups/
 data/*.sqlite3
 data/*.sqlite3-journal
 data/*.sqlite3-wal
